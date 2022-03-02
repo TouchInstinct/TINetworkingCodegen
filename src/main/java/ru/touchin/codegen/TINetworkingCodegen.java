@@ -8,6 +8,7 @@ import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.MapSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.parameters.RequestBody;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
 import org.slf4j.Logger;
@@ -26,10 +27,8 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
     public static final String PROJECT_NAME = "projectName";
     public static final String RESPONSE_AS = "responseAs";
     public static final String UNWRAP_REQUIRED = "unwrapRequired";
-    public static final String SWIFT_USE_API_NAMESPACE = "swiftUseApiNamespace";
-    protected String projectName = "SwaggerClient";
+    protected String projectName = "SwaggerAPI";
     private boolean unwrapRequired;
-    protected boolean swiftUseApiNamespace;
     private String[] responseAs = new String[0];
     protected String sourceFolder = "Classes" + File.separator + "Swaggers";
 
@@ -68,7 +67,6 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
         modelTemplateFiles.put("model.mustache", ".swift");
         apiTemplateFiles.put("api.mustache", ".swift");
         apiPackage = File.separator + "APIs";
-        modelPackage = File.separator + "Models";
 
         languageSpecificPrimitives = new HashSet<>(
             Arrays.asList(
@@ -100,9 +98,6 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
         );
         reservedWords = new HashSet<>(
             Arrays.asList(
-                // name used by swift client
-                "ErrorResponse", "Response",
-
                 //
                 // Swift keywords. This list is taken from here:
                 // https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/LexicalStructure.html#//apple_ref/doc/uid/TP40014097-CH30-ID410
@@ -181,9 +176,6 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
             "Treat 'required' properties in response as non-optional "
                 + "(which would crash the app if api returns null as opposed "
                 + "to required option specified in json schema"));
-        cliOptions.add(new CliOption(SWIFT_USE_API_NAMESPACE,
-            "Flag to make all the API classes inner-class "
-                + "of {{projectName}}API"));
         cliOptions.add(new CliOption(CodegenConstants.HIDE_GENERATION_TIMESTAMP,
             CodegenConstants.HIDE_GENERATION_TIMESTAMP_DESC)
             .defaultValue(Boolean.TRUE.toString()));
@@ -227,45 +219,11 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
         }
         additionalProperties.put(RESPONSE_AS, responseAs);
 
-        // Setup swiftUseApiNamespace option, which makes all the API
-        // classes inner-class of {{projectName}}API
-        if (additionalProperties.containsKey(SWIFT_USE_API_NAMESPACE)) {
-            setSwiftUseApiNamespace(convertPropertyToBooleanAndWriteBack(SWIFT_USE_API_NAMESPACE));
-        }
-
-        supportingFiles.add(new SupportingFile("APIHelper.mustache",
-            sourceFolder,
-            "APIHelper.swift"));
-        supportingFiles.add(new SupportingFile("AlamofireImplementations.mustache",
-            sourceFolder,
-            "AlamofireImplementations.swift"));
-        supportingFiles.add(new SupportingFile("Configuration.mustache",
-            sourceFolder,
-            "Configuration.swift"));
-        supportingFiles.add(new SupportingFile("Extensions.mustache",
-            sourceFolder,
-            "Extensions.swift"));
-        supportingFiles.add(new SupportingFile("Models.mustache",
-            sourceFolder,
-            "Models.swift"));
-        supportingFiles.add(new SupportingFile("APIs.mustache",
-            sourceFolder,
-            "APIs.swift"));
-        supportingFiles.add(new SupportingFile("CodableHelper.mustache",
-            sourceFolder,
-            "CodableHelper.swift"));
-        supportingFiles.add(new SupportingFile("JSONEncodableEncoding.mustache",
-            sourceFolder,
-            "JSONEncodableEncoding.swift"));
-        supportingFiles.add(new SupportingFile("JSONEncodingHelper.mustache",
-            sourceFolder,
-            "JSONEncodingHelper.swift"));
-        supportingFiles.add(new SupportingFile("JSONValue.mustache",
-            sourceFolder,
-            "JSONValue.swift"));
+        supportingFiles.add(new SupportingFile("Servers.mustache",
+                sourceFolder,
+                projectName + "+Servers.swift"));
 
         copyFistAllOfProperties = true;
-
     }
 
     @Override
@@ -327,6 +285,13 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
             type = schemaType;
         }
         return toModelName(type);
+    }
+
+    @Override
+    public CodegenParameter fromRequestBody(RequestBody body, String name, Schema schema, Map<String, Schema> schemas, Set<String> imports) {
+        CodegenParameter codegenParameter = super.fromRequestBody(body, name, schema, schemas, imports);
+        codegenParameter.description = codegenParameter.description == null ? schema.getDescription() : codegenParameter.description;
+        return codegenParameter;
     }
 
     @Override
@@ -532,6 +497,24 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
             codegenOperation.returnType = null;
         }
 
+        if (operation.getResponses() != null && !operation.getResponses().isEmpty()) {
+            for (CodegenContent content : codegenOperation.getContents()) {
+                ArrayList<String> contentStatusCodes = new ArrayList<>();
+
+                for (CodegenResponse codegenResponse : codegenOperation.responses) {
+                    Schema schema = (Schema) codegenResponse.getSchema();
+                    String responseContentType = (String) schema.getExtensions().get("x-content-type");
+
+                    if (Objects.equals(responseContentType, content.getContentType())) {
+                        contentStatusCodes.add(codegenResponse.code);
+                    }
+                }
+
+                content.getContentExtensions()
+                        .put("x-codegen-acceptable-status-codes", String.join(", ", contentStatusCodes));
+            }
+        }
+
         return codegenOperation;
     }
 
@@ -545,10 +528,6 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
 
     public void setResponseAs(String[] responseAs) {
         this.responseAs = responseAs;
-    }
-
-    public void setSwiftUseApiNamespace(boolean swiftUseApiNamespace) {
-        this.swiftUseApiNamespace = swiftUseApiNamespace;
     }
 
     @Override
