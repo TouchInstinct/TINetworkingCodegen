@@ -1,0 +1,8 @@
+import TIFoundationUtils
+import Foundation
+
+enum APIDateFormat: String, DateFormat {
+    {{#each apiDateFormats as |value key|}}
+    case {{key}} = "{{{value}}}"
+    {{/each}}
+}

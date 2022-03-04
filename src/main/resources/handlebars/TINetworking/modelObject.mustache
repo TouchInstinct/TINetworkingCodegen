@@ -20,9 +20,42 @@ public {{#useModelClasses}}class{{/useModelClasses}}{{^useModelClasses}}struct{{
 {{/allVars}}
 
 {{#hasVars}}
+    private enum CodingKeys: String, CodingKey {
+    {{#allVars}}
+        case {{name}}
+    {{/allVars}}
+    }
+
     public init({{#allVars}}{{name}}: {{{datatypeWithEnum}}}{{^required}}? = nil{{/required}}{{#hasMore}}, {{/hasMore}}{{/allVars}}) {
         {{#allVars}}
         self.{{name}} = {{name}}
+        {{/allVars}}
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        {{#allVars}}
+        {{#if vendorExtensions.x-codegen-is-iso8601-date}}
+        {{name}} = try container.decodeDate(forKey: .{{name}}, using: try decoder.userInfo.iso8601DateFormatter(for: .{{#isDate}}withFullDate{{/isDate}}{{#isDateTime}}withInternetDateTime{{/isDateTime}}){{^required}}, required: false{{/required}})
+        {{else if vendorExtensions.x-custom-date-format}}
+        {{name}} = try container.decodeDate(forKey: .{{name}}, using: try decoder.userInfo.dateFormatter(for: APIDateFormat.{{vendorExtensions.x-codegen-date-format-name}}){{^required}}, required: false{{/required}})
+        {{else}}
+        {{name}} = try container.decode({{{datatypeWithEnum}}}{{^required}}?{{/required}}.self, forKey: .{{name}}{{^required}}, required: false{{/required}})
+        {{/if}}
+        {{/allVars}}
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        {{#allVars}}
+        {{#if vendorExtensions.x-codegen-is-iso8601-date}}
+        try container.encode(date: {{name}}, forKey: .{{name}}, using: try encoder.userInfo.iso8601DateFormatter(for: .{{#isDate}}withFullDate{{/isDate}}{{#isDateTime}}withInternetDateTime{{/isDateTime}}){{^required}}, required: false{{/required}})
+        {{else if vendorExtensions.x-custom-date-format}}
+        try container.encode(date: {{name}}, forKey: .{{name}}, using: try encoder.userInfo.dateFormatter(for: APIDateFormat.{{vendorExtensions.x-codegen-date-format-name}}){{^required}}, required: false{{/required}})
+        {{else}}
+        try container.encode({{name}}, forKey: .{{name}}{{^required}}, required: false{{/required}})
+        {{/if}}
         {{/allVars}}
     }
 {{/hasVars}}

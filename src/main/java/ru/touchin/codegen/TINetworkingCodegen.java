@@ -32,6 +32,8 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
     private String[] responseAs = new String[0];
     protected String sourceFolder = "Classes" + File.separator + "Swaggers";
 
+    private Map<String, String> allCustomDateFormats = new HashMap<>();
+
     @Override
     public CodegenType getTag() {
         return CodegenType.CLIENT;
@@ -222,6 +224,10 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
         supportingFiles.add(new SupportingFile("Servers.mustache",
                 sourceFolder,
                 projectName + "+Servers.swift"));
+
+        supportingFiles.add(new SupportingFile("APIDateFormat.mustache",
+                sourceFolder,
+                "APIDateFormat.swift"));
 
         copyFistAllOfProperties = true;
     }
@@ -479,7 +485,56 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
             }
         }
 
+        for (CodegenProperty property : codegenModel.allVars) {
+            Map<String, Object> vendorExtensions = property.getVendorExtensions();
+
+            boolean containsCustomDateFormat = vendorExtensions.containsKey(TINetowrkingCodegenConstants.DATE_FORMAT);
+
+            if (property.getIsDate()
+                    || property.getIsDateTime()
+                    && !containsCustomDateFormat) {
+                    vendorExtensions.put(TINetowrkingCodegenConstants.IS_ISO8601_DATE, true);
+            } else if (containsCustomDateFormat) {
+                String customDateFormat = (String) vendorExtensions.get(TINetowrkingCodegenConstants.DATE_FORMAT);
+                String dateFormatName = customDateFormat.replace(".", "_")
+                        .replaceAll("[^A-Za-z0-9_]", "");
+                vendorExtensions.put(TINetowrkingCodegenConstants.DATE_FORMAT_NAME, dateFormatName);
+            }
+        }
+
         return codegenModel;
+    }
+
+    @Override
+    public Map<String, Object> postProcessAllModels(Map<String, Object> processedModels) {
+        for (Object processedModel : processedModels.values()) {
+            Map<String, Object> modelMap = (Map<String, Object>) processedModel;
+            List<Map<String, Object>> modelsMap = (List<Map<String, Object>>) modelMap.get("models");
+            for (Map<String, Object> modelModelsMap : modelsMap) {
+                CodegenModel codegenModel = (CodegenModel) modelModelsMap.get("model");
+                for (CodegenProperty modelProperty : codegenModel.getAllVars()) {
+                    String customDateFormat = (String) modelProperty.getVendorExtensions()
+                            .get(TINetowrkingCodegenConstants.DATE_FORMAT);
+
+                    if (customDateFormat != null) {
+                        String dateFormatName = (String) modelProperty.getVendorExtensions()
+                                .get(TINetowrkingCodegenConstants.DATE_FORMAT_NAME);
+
+                        allCustomDateFormats.put(dateFormatName, customDateFormat);
+                    }
+                }
+            }
+
+        }
+
+        return super.postProcessAllModels(processedModels);
+    }
+
+    @Override
+    public Map<String, Object> postProcessSupportingFileData(Map<String, Object> objs) {
+        Map<String, Object> supportingFileData = super.postProcessSupportingFileData(objs);
+        supportingFileData.put("apiDateFormats", allCustomDateFormats);
+        return supportingFileData;
     }
 
     protected void updateCodegenModelEnumVars(CodegenModel codegenModel) {
@@ -502,12 +557,7 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
                 ArrayList<String> contentStatusCodes = new ArrayList<>();
 
                 for (CodegenResponse codegenResponse : codegenOperation.responses) {
-                    Schema schema = (Schema) codegenResponse.getSchema();
-                    String responseContentType = (String) schema.getExtensions().get("x-content-type");
-
-                    if (Objects.equals(responseContentType, content.getContentType())) {
-                        contentStatusCodes.add(codegenResponse.code);
-                    }
+                    contentStatusCodes.add(codegenResponse.code);
                 }
 
                 content.getContentExtensions()

@@ -36,10 +36,10 @@ public extension EndpointRequest {
      - parameter {{paramName}}: {{description}} {{^required}}(optional{{#defaultValue}}, default to {{{.}}}{{/defaultValue}}){{/required}}
      {{/parameters}}
      */
-    static func {{operationId}}({{#parameters}}{{paramName}}: {{#isEnum}}{{#isContainer}}{{{dataType}}}{{/isContainer}}{{^isContainer}}{{{datatypeWithEnum}}}_{{operationId}}{{/isContainer}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{^required}}? = nil{{/required}}{{#hasMore}}, {{/hasMore}}{{/parameters}}{{#hasParams}}, {{/hasParams}}server: Server = .default) -> EndpointRequest<{{#parameters}}{{{dataType}}}{{/parameters}}, {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}Void{{/returnType}}> {
+    static func {{operationId}}({{#parameters}}{{paramName}}: {{#isEnum}}{{#isContainer}}{{{dataType}}}{{/isContainer}}{{^isContainer}}{{{datatypeWithEnum}}}_{{operationId}}{{/isContainer}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{^required}}? = nil{{/required}}{{#hasMore}}, {{/hasMore}}{{/parameters}}{{#hasParams}}, {{/hasParams}}server: Server = .default) -> EndpointRequest<{{#parameters}}{{#isBodyParam}}{{{dataType}}}{{/isBodyParam}}{{/parameters}}{{^hasBodyParam}}EmptyBody{{/hasBodyParam}}, {{{returnType}}}> {
         .init(templatePath: "{{{path}}}",
                       method: .init(rawValue: "{{httpMethod}}"),
-                      body: body,
+                      body: {{#hasBodyParam}}body{{/hasBodyParam}}{{^hasBodyParam}}EmptyBody(){{/hasBodyParam}},
                       acceptableStatusCodes: [{{contentExtensions.x-codegen-acceptable-status-codes}}],
                       server: server)
     }
