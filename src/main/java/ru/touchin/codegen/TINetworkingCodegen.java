@@ -229,6 +229,10 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
                 sourceFolder,
                 "APIDateFormat.swift"));
 
+        supportingFiles.add(new SupportingFile("Plugins.mustache",
+                sourceFolder,
+                "Plugins.swift"));
+
         copyFistAllOfProperties = true;
     }
 

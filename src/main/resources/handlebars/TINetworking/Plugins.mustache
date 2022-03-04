@@ -1,0 +1,26 @@
+import TIMoyaNetworking
+import Alamofire
+
+{{#authMethods}}
+{{#isApiKey}}
+{{#isKeyInHeader}}
+public struct {{name}}Plugin: AdditionalHeadersPlugin {
+    public typealias HeaderValueProvider = () -> String?
+
+    private let headerValueProvider: HeaderValueProvider
+
+    public init(headerValueProvider: @escaping HeaderValueProvider) {
+        self.headerValueProvider = headerValueProvider
+    }
+
+    public var additionalHeaders: HTTPHeaders {
+        guard let value = headerValueProvider() else {
+            return HTTPHeaders()
+        }
+
+        return HTTPHeaders(["{{{keyParamName}}}": value])
+    }
+}
+{{/isKeyInHeader}}
+{{/isApiKey}}
+{{/authMethods}}
