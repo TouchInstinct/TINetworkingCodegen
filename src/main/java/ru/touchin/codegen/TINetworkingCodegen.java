@@ -19,16 +19,12 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static io.swagger.codegen.v3.generators.handlebars.ExtensionHelper.getBooleanValue;
-
 public class TINetworkingCodegen extends DefaultCodegenConfig {
     protected static final Logger LOGGER = LoggerFactory.getLogger(TINetworkingCodegen.class);
 
     public static final String PROJECT_NAME = "projectName";
     public static final String RESPONSE_AS = "responseAs";
-    public static final String UNWRAP_REQUIRED = "unwrapRequired";
     protected String projectName = "SwaggerAPI";
-    private boolean unwrapRequired;
     private String[] responseAs = new String[0];
     protected String sourceFolder = "Classes" + File.separator + "Swaggers";
 
@@ -174,10 +170,6 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
         importMapping = new HashMap<>();
 
         cliOptions.add(new CliOption(PROJECT_NAME, "Project name in Xcode"));
-        cliOptions.add(new CliOption(UNWRAP_REQUIRED,
-            "Treat 'required' properties in response as non-optional "
-                + "(which would crash the app if api returns null as opposed "
-                + "to required option specified in json schema"));
         cliOptions.add(new CliOption(CodegenConstants.HIDE_GENERATION_TIMESTAMP,
             CodegenConstants.HIDE_GENERATION_TIMESTAMP_DESC)
             .defaultValue(Boolean.TRUE.toString()));
@@ -202,13 +194,6 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
             additionalProperties.put(PROJECT_NAME, projectName);
         }
         sourceFolder = projectName + File.separator + sourceFolder;
-
-        // Setup unwrapRequired option, which makes all the
-        // properties with "required" non-optional
-        if (additionalProperties.containsKey(UNWRAP_REQUIRED)) {
-            setUnwrapRequired(convertPropertyToBooleanAndWriteBack(UNWRAP_REQUIRED));
-        }
-        additionalProperties.put(UNWRAP_REQUIRED, unwrapRequired);
 
         // Setup unwrapRequired option, which makes all the properties with "required" non-optional
         if (additionalProperties.containsKey(RESPONSE_AS)) {
@@ -489,49 +474,7 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
             }
         }
 
-        for (CodegenProperty property : codegenModel.allVars) {
-            Map<String, Object> vendorExtensions = property.getVendorExtensions();
-
-            boolean containsCustomDateFormat = vendorExtensions.containsKey(TINetowrkingCodegenConstants.DATE_FORMAT);
-
-            if (property.getIsDate()
-                    || property.getIsDateTime()
-                    && !containsCustomDateFormat) {
-                    vendorExtensions.put(TINetowrkingCodegenConstants.IS_ISO8601_DATE, true);
-            } else if (containsCustomDateFormat) {
-                String customDateFormat = (String) vendorExtensions.get(TINetowrkingCodegenConstants.DATE_FORMAT);
-                String dateFormatName = customDateFormat.replace(".", "_")
-                        .replaceAll("[^A-Za-z0-9_]", "");
-                vendorExtensions.put(TINetowrkingCodegenConstants.DATE_FORMAT_NAME, dateFormatName);
-            }
-        }
-
         return codegenModel;
-    }
-
-    @Override
-    public Map<String, Object> postProcessAllModels(Map<String, Object> processedModels) {
-        for (Object processedModel : processedModels.values()) {
-            Map<String, Object> modelMap = (Map<String, Object>) processedModel;
-            List<Map<String, Object>> modelsMap = (List<Map<String, Object>>) modelMap.get("models");
-            for (Map<String, Object> modelModelsMap : modelsMap) {
-                CodegenModel codegenModel = (CodegenModel) modelModelsMap.get("model");
-                for (CodegenProperty modelProperty : codegenModel.getAllVars()) {
-                    String customDateFormat = (String) modelProperty.getVendorExtensions()
-                            .get(TINetowrkingCodegenConstants.DATE_FORMAT);
-
-                    if (customDateFormat != null) {
-                        String dateFormatName = (String) modelProperty.getVendorExtensions()
-                                .get(TINetowrkingCodegenConstants.DATE_FORMAT_NAME);
-
-                        allCustomDateFormats.put(dateFormatName, customDateFormat);
-                    }
-                }
-            }
-
-        }
-
-        return super.postProcessAllModels(processedModels);
     }
 
     @Override
@@ -574,10 +517,6 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
 
     public void setProjectName(String projectName) {
         this.projectName = projectName;
-    }
-
-    public void setUnwrapRequired(boolean unwrapRequired) {
-        this.unwrapRequired = unwrapRequired;
     }
 
     public void setResponseAs(String[] responseAs) {
@@ -710,31 +649,21 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
     public void postProcessModelProperty(CodegenModel model, CodegenProperty property) {
         super.postProcessModelProperty(model, property);
 
-        // The default template code has the following logic for
-        // assigning a type as Swift Optional:
-        //
-        // {{^unwrapRequired}}?{{/unwrapRequired}}
-        // {{#unwrapRequired}}{{^required}}?{{/required}}{{/unwrapRequired}}
-        //
-        // which means:
-        //
-        // boolean isSwiftOptional = !unwrapRequired || (unwrapRequired && !property.required);
-        //
-        // We can drop the check for unwrapRequired in (unwrapRequired && !property.required)
-        // due to short-circuit evaluation of the || operator.
-        boolean isSwiftOptional = !unwrapRequired || !property.required;
-        boolean isSwiftScalarType = getBooleanValue(property, CodegenConstants.IS_INTEGER_EXT_NAME)
-                || getBooleanValue(property, CodegenConstants.IS_LONG_EXT_NAME)
-                || getBooleanValue(property, CodegenConstants.IS_FLOAT_EXT_NAME)
-                || getBooleanValue(property, CodegenConstants.IS_DOUBLE_EXT_NAME)
-                || getBooleanValue(property, CodegenConstants.IS_BOOLEAN_EXT_NAME);
+        Map<String, Object> vendorExtensions = property.getVendorExtensions();
 
-        if (isSwiftOptional && isSwiftScalarType) {
-            // Optional scalar types like Int?, Int64?, Float?, Double?, and Bool?
-            // do not translate to Objective-C. So we want to flag those
-            // properties in case we want to put special code in the templates
-            // which provide Objective-C compatibility.
-            property.vendorExtensions.put("x-swift-optional-scalar", true);
+        boolean containsCustomDateFormat = vendorExtensions.containsKey(TINetworkingCodegenConstants.DATE_FORMAT);
+
+        if (property.getIsDate()
+                || property.getIsDateTime()
+                && !containsCustomDateFormat) {
+            vendorExtensions.put(TINetworkingCodegenConstants.IS_ISO8601_DATE, true);
+        } else if (containsCustomDateFormat) {
+            String customDateFormat = (String) vendorExtensions.get(TINetworkingCodegenConstants.DATE_FORMAT);
+            String dateFormatName = customDateFormat.replace(".", "_")
+                    .replaceAll("[^A-Za-z0-9_]", "");
+            vendorExtensions.put(TINetworkingCodegenConstants.DATE_FORMAT_NAME, dateFormatName);
+
+            allCustomDateFormats.put(dateFormatName, customDateFormat);
         }
     }
 
