@@ -5,9 +5,7 @@ import io.swagger.codegen.v3.*;
 import io.swagger.codegen.v3.generators.DefaultCodegenConfig;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.media.ArraySchema;
-import io.swagger.v3.oas.models.media.MapSchema;
-import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.*;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
@@ -285,7 +283,10 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
     @Override
     public CodegenParameter fromRequestBody(RequestBody body, String name, Schema schema, Map<String, Schema> schemas, Set<String> imports) {
         CodegenParameter codegenParameter = super.fromRequestBody(body, name, schema, schemas, imports);
-        codegenParameter.description = codegenParameter.description == null ? schema.getDescription() : codegenParameter.description;
+        codegenParameter.description = codegenParameter.getDescription() == null
+                ? schema.getDescription()
+                : codegenParameter.getDescription();
+
         return codegenParameter;
     }
 
@@ -475,6 +476,41 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
         }
 
         return codegenModel;
+    }
+
+    @Override
+    public CodegenProperty fromProperty(String name, Schema propertySchema) {
+        CodegenProperty codegenProperty = super.fromProperty(name, propertySchema);
+
+        if (typeAliases.containsKey(codegenProperty.baseType)) {
+            Schema resolvedPropertySchema = getOpenAPI().getComponents().getSchemas().get(codegenProperty.datatype);
+
+            postProcessAliasProperty(codegenProperty, resolvedPropertySchema);
+        }
+
+        return codegenProperty;
+    }
+
+    private void postProcessAliasProperty(CodegenProperty codegenProperty, Schema resolvedPropertySchema) {
+        Map<String, Object> propertyExtensions = codegenProperty.getVendorExtensions();
+
+        propertyExtensions.put(CodegenConstants.IS_ALIAS_EXT_NAME, Boolean.TRUE);
+
+        codegenProperty.setDescription(codegenProperty.getDescription() == null
+                ? resolvedPropertySchema.getDescription()
+                : codegenProperty.getDescription());
+
+        if (resolvedPropertySchema.getExtensions() != null) {
+            propertyExtensions.putAll(resolvedPropertySchema.getExtensions());
+        }
+
+        if (resolvedPropertySchema instanceof DateSchema) {
+            propertyExtensions.put(CodegenConstants.IS_DATE_EXT_NAME, Boolean.TRUE);
+        }
+
+        if (resolvedPropertySchema instanceof DateTimeSchema) {
+            propertyExtensions.put(CodegenConstants.IS_DATE_TIME_EXT_NAME, Boolean.TRUE);
+        }
     }
 
     @Override
