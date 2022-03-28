@@ -131,7 +131,7 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
                 "Array", "Dictionary", "Set", "OptionSet", "CountableRange", "CountableClosedRange",
 
                 // The following are commonly-used Foundation types
-                "URL", "Data", "Codable", "Encodable", "Decodable",
+                "URL", "Data", "Date", "Codable", "Encodable", "Decodable",
 
                 // The following are other words we want to reserve
                 "Void", "AnyObject", "Class", "dynamicType", "COLUMN", "FILE", "FUNCTION", "LINE"
@@ -208,15 +208,24 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
                 sourceFolder,
                 projectName + "+Servers.swift"));
 
-        supportingFiles.add(new SupportingFile("APIDateFormat.mustache",
-                sourceFolder,
-                "APIDateFormat.swift"));
-
         supportingFiles.add(new SupportingFile("Plugins.mustache",
                 sourceFolder,
                 "Plugins.swift"));
 
         copyFistAllOfProperties = true;
+    }
+
+    @Override
+    public List<SupportingFile> supportingFiles() {
+        List<SupportingFile> supportingFiles = super.supportingFiles();
+
+        if (!allCustomDateFormats.isEmpty()) {
+            supportingFiles.add(new SupportingFile("APIDateFormat.mustache",
+                    sourceFolder,
+                    "APIDateFormat.swift"));
+        }
+
+        return supportingFiles;
     }
 
     @Override
