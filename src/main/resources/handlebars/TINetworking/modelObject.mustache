@@ -1,5 +1,5 @@
 
-public {{#useModelClasses}}class{{/useModelClasses}}{{^useModelClasses}}struct{{/useModelClasses}} {{classname}}: Codable {
+public {{#useModelClasses}}class{{/useModelClasses}}{{^useModelClasses}}struct{{/useModelClasses}} {{classname}}: Codable, Equatable {
 
 {{#allVars}}
 {{#isEnum}}
