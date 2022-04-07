@@ -603,6 +603,9 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
         if (name.matches("[A-Z][a-z0-9]+[a-zA-Z0-9]*")) {
             name = camelize(name, true);
             camelized = true;
+        } else if (name.matches("[a-z]+((\\d)|([A-Z0-9][a-z0-9]+))*([A-Z])?")) {
+            // already camelized: https://stackoverflow.com/a/47591707
+            camelized = true;
         }
 
         // Reserved Name
