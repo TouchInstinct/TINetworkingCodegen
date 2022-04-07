@@ -36,9 +36,9 @@ public {{#useModelClasses}}class{{/useModelClasses}}{{^useModelClasses}}struct{{
         let container = try decoder.container(keyedBy: CodingKeys.self)
         {{#allVars}}
         {{#if vendorExtensions.x-codegen-is-iso8601-date}}
-        {{name}} = try container.decodeDate(forKey: .{{name}}, using: try decoder.userInfo.iso8601DateFormatter(for: .{{#isDate}}withFullDate{{/isDate}}{{#isDateTime}}withInternetDateTime{{/isDateTime}}){{^required}}, required: false{{/required}})
+        {{name}} = try container.decodeDate(forKey: .{{name}}, userInfo: decoder.userInfo, options: .{{#isDate}}withFullDate{{/isDate}}{{#isDateTime}}withInternetDateTime{{/isDateTime}}{{^required}}, required: false{{/required}})
         {{else if vendorExtensions.x-custom-date-format}}
-        {{name}} = try container.decodeDate(forKey: .{{name}}, using: try decoder.userInfo.dateFormatter(for: APIDateFormat.{{vendorExtensions.x-codegen-date-format-name}}){{^required}}, required: false{{/required}})
+        {{name}} = try container.decodeDate(forKey: .{{name}}, userInfo: decoder.userInfo, dateFormat: APIDateFormat.{{vendorExtensions.x-codegen-date-format-name}}{{^required}}, required: false{{/required}})
         {{else}}
         {{name}} = try container.decode({{{datatypeWithEnum}}}{{^required}}?{{/required}}.self, forKey: .{{name}}{{^required}}, required: false{{/required}})
         {{/if}}
@@ -50,9 +50,9 @@ public {{#useModelClasses}}class{{/useModelClasses}}{{^useModelClasses}}struct{{
 
         {{#allVars}}
         {{#if vendorExtensions.x-codegen-is-iso8601-date}}
-        try container.encode(date: {{name}}, forKey: .{{name}}, using: try encoder.userInfo.iso8601DateFormatter(for: .{{#isDate}}withFullDate{{/isDate}}{{#isDateTime}}withInternetDateTime{{/isDateTime}}){{^required}}, required: false{{/required}})
+        try container.encode(date: {{name}}, forKey: .{{name}}, userInfo: encoder.userInfo, options: .{{#isDate}}withFullDate{{/isDate}}{{#isDateTime}}withInternetDateTime{{/isDateTime}}{{^required}}, required: false{{/required}})
         {{else if vendorExtensions.x-custom-date-format}}
-        try container.encode(date: {{name}}, forKey: .{{name}}, using: try encoder.userInfo.dateFormatter(for: APIDateFormat.{{vendorExtensions.x-codegen-date-format-name}}){{^required}}, required: false{{/required}})
+        try container.encode(date: {{name}}, forKey: .{{name}}, userInfo: encoder.userInfo, dateFormat: APIDateFormat.{{vendorExtensions.x-codegen-date-format-name}}{{^required}}, required: false{{/required}})
         {{else}}
         try container.encode({{name}}, forKey: .{{name}}{{^required}}, required: false{{/required}})
         {{/if}}
