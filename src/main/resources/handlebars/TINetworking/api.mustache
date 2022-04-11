@@ -47,19 +47,19 @@ public extension EndpointRequest {
               {{#hasQueryParams}}
               queryParameters: [
               {{#each queryParams}}
-                  "{{{this.paramName}}}": .init(value: {{{this.paramName}}}, allowEmptyValue: {{#this.required}}false{{/this.required}}{{^this.required}}true{{/this.required}}),
+                  "{{{this.baseName}}}": .init(value: {{{this.paramName}}}, allowEmptyValue: {{#this.required}}false{{/this.required}}{{^this.required}}true{{/this.required}}),
               {{/each}}],
               {{/hasQueryParams}}
               {{#hasPathParams}}
               pathParameters: [
                 {{#each pathParams}}
-                    "{{{this.paramName}}}": .init(value: {{{this.paramName}}}, allowEmptyValue: {{#this.required}}false{{/this.required}}{{^this.required}}true{{/this.required}}),
+                    "{{{this.baseName}}}": .init(value: {{{this.paramName}}}, allowEmptyValue: {{#this.required}}false{{/this.required}}{{^this.required}}true{{/this.required}}),
                 {{/each}}],
               {{/hasPathParams}}
               {{#hasHeaderParams}}
               headerParameters: [
                 {{#each headerParams}}
-                    "{{{this.paramName}}}": .init(value: {{{this.paramName}}}, allowEmptyValue: {{#this.required}}false{{/this.required}}{{^this.required}}true{{/this.required}}),
+                    "{{{this.baseName}}}": .init(value: {{{this.paramName}}}, allowEmptyValue: {{#this.required}}false{{/this.required}}{{^this.required}}true{{/this.required}}),
                 {{/each}}],
               {{/hasHeaderParams}}
               {{^hasHeaderParams}}
@@ -68,7 +68,7 @@ public extension EndpointRequest {
               {{#hasCookieParams}}
               cookieParameters: [
                 {{#each cookieParams}}
-                    "{{{this.paramName}}}": .init(value: {{{this.paramName}}}, allowEmptyValue: {{#this.required}}false{{/this.required}}{{^this.required}}true{{/this.required}}),
+                    "{{{this.baseName}}}": .init(value: {{{this.paramName}}}, allowEmptyValue: {{#this.required}}false{{/this.required}}{{^this.required}}true{{/this.required}}),
                 {{/each}}],
               {{/hasCookieParams}}
               acceptableStatusCodes: [{{contentExtensions.x-codegen-acceptable-status-codes}}],
