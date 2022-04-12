@@ -662,32 +662,36 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
     public void postProcessModelProperty(CodegenModel model, CodegenProperty property) {
         super.postProcessModelProperty(model, property);
 
-        Map<String, Object> vendorExtensions = property.getVendorExtensions();
-
-        boolean containsCustomDateFormat = vendorExtensions.containsKey(TINetworkingCodegenConstants.DATE_FORMAT);
-
         if (typeAliases.containsKey(property.baseType)) {
             Schema resolvedPropertySchema = getOpenAPI().getComponents().getSchemas().get(property.datatype);
 
             postProcessAliasProperty(property, resolvedPropertySchema);
         }
 
-        if (property.getIsDate()
-                || property.getIsDateTime()
-                && !containsCustomDateFormat) {
+        updateVendorExtensionsForProperty(property);
+
+        if (property.getIsListContainer()) {
+            updateVendorExtensionsForProperty(property.items);
+        }
+
+        if (property.getIsObject() && isReservedWord(property.getDatatype())) {
+            property.datatype = escapeReservedTypeDeclaration(property.getDatatype());
+            property.datatypeWithEnum = property.datatype;
+        }
+    }
+
+    private void updateVendorExtensionsForProperty(CodegenProperty property) {
+        Map<String, Object> vendorExtensions = property.getVendorExtensions();
+
+        if (isISO8601DateProperty(property)) {
             vendorExtensions.put(TINetworkingCodegenConstants.IS_ISO8601_DATE, true);
-        } else if (containsCustomDateFormat) {
+        } else if (isCustomDateFormatProperty(property)) {
             String customDateFormat = (String) vendorExtensions.get(TINetworkingCodegenConstants.DATE_FORMAT);
             String dateFormatName = customDateFormat.replace(".", "_")
                     .replaceAll("[^A-Za-z0-9_]", "");
             vendorExtensions.put(TINetworkingCodegenConstants.DATE_FORMAT_NAME, dateFormatName);
 
             allCustomDateFormats.put(dateFormatName, customDateFormat);
-        }
-
-        if (property.getIsObject() && isReservedWord(property.getDatatype())) {
-            property.datatype = escapeReservedTypeDeclaration(property.getDatatype());
-            property.datatypeWithEnum = property.datatype;
         }
     }
 
@@ -770,6 +774,16 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
         if (resolvedPropertySchema instanceof DateTimeSchema) {
             propertyExtensions.put(CodegenConstants.IS_DATE_TIME_EXT_NAME, Boolean.TRUE);
         }
+    }
+
+    private boolean isISO8601DateProperty(CodegenProperty property) {
+        return property.getIsDate()
+                || property.getIsDateTime()
+                && !isCustomDateFormatProperty(property);
+    }
+
+    private boolean isCustomDateFormatProperty(CodegenProperty property) {
+        return property.getVendorExtensions().containsKey(TINetworkingCodegenConstants.DATE_FORMAT);
     }
 }
 

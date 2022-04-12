@@ -35,12 +35,22 @@ public {{#useModelClasses}}class{{/useModelClasses}}{{^useModelClasses}}struct{{
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         {{#allVars}}
+        {{#if isListContainer}}
+        {{#if items.vendorExtensions.x-codegen-is-iso8601-date}}
+        {{name}} = try container.decodeDates(forKey: .{{name}}, userInfo: decoder.userInfo, options: .{{#items.isDate}}withFullDate{{/items.isDate}}{{#items.isDateTime}}withInternetDateTime{{/items.isDateTime}}{{^required}}, required: false{{/required}})
+        {{else if items.vendorExtensions.x-custom-date-format}}
+        {{name}} = try container.decodeDates(forKey: .{{name}}, userInfo: decoder.userInfo, dateFormat: APIDateFormat.{{items.vendorExtensions.x-codegen-date-format-name}}{{^required}}, required: false{{/required}})
+        {{else}}
+        {{name}} = try container.decode({{{datatypeWithEnum}}}{{^required}}?{{/required}}.self, forKey: .{{name}}{{^required}}, required: false{{/required}})
+        {{/if}}
+        {{else}}
         {{#if vendorExtensions.x-codegen-is-iso8601-date}}
         {{name}} = try container.decodeDate(forKey: .{{name}}, userInfo: decoder.userInfo, options: .{{#isDate}}withFullDate{{/isDate}}{{#isDateTime}}withInternetDateTime{{/isDateTime}}{{^required}}, required: false{{/required}})
         {{else if vendorExtensions.x-custom-date-format}}
         {{name}} = try container.decodeDate(forKey: .{{name}}, userInfo: decoder.userInfo, dateFormat: APIDateFormat.{{vendorExtensions.x-codegen-date-format-name}}{{^required}}, required: false{{/required}})
         {{else}}
         {{name}} = try container.decode({{{datatypeWithEnum}}}{{^required}}?{{/required}}.self, forKey: .{{name}}{{^required}}, required: false{{/required}})
+        {{/if}}
         {{/if}}
         {{/allVars}}
     }
@@ -49,12 +59,22 @@ public {{#useModelClasses}}class{{/useModelClasses}}{{^useModelClasses}}struct{{
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         {{#allVars}}
+        {{#if isListContainer}}
+        {{#if items.vendorExtensions.x-codegen-is-iso8601-date}}
+        try container.encode(dates: {{name}}, forKey: .{{name}}, userInfo: encoder.userInfo, options: .{{#items.isDate}}withFullDate{{/items.isDate}}{{#isDateTime}}withInternetDateTime{{/isDateTime}}{{^required}}, required: false{{/required}})
+        {{else if items.vendorExtensions.x-custom-date-format}}
+        try container.encode(dates: {{name}}, forKey: .{{name}}, userInfo: encoder.userInfo, dateFormat: APIDateFormat.{{vendorExtensions.x-codegen-date-format-name}}{{^required}}, required: false{{/required}})
+        {{else}}
+        try container.encode({{name}}, forKey: .{{name}}{{^required}}, required: false{{/required}})
+        {{/if}}
+        {{else}}
         {{#if vendorExtensions.x-codegen-is-iso8601-date}}
         try container.encode(date: {{name}}, forKey: .{{name}}, userInfo: encoder.userInfo, options: .{{#isDate}}withFullDate{{/isDate}}{{#isDateTime}}withInternetDateTime{{/isDateTime}}{{^required}}, required: false{{/required}})
         {{else if vendorExtensions.x-custom-date-format}}
         try container.encode(date: {{name}}, forKey: .{{name}}, userInfo: encoder.userInfo, dateFormat: APIDateFormat.{{vendorExtensions.x-codegen-date-format-name}}{{^required}}, required: false{{/required}})
         {{else}}
         try container.encode({{name}}, forKey: .{{name}}{{^required}}, required: false{{/required}})
+        {{/if}}
         {{/if}}
         {{/allVars}}
     }
