@@ -131,7 +131,7 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
                 "Array", "Dictionary", "Set", "OptionSet", "CountableRange", "CountableClosedRange",
 
                 // The following are commonly-used Foundation types
-                "URL", "Data", "Date", "Codable", "Encodable", "Decodable",
+                "URL", "Data", "Date", "TimeInterval", "Codable", "Encodable", "Decodable",
 
                 // The following are other words we want to reserve
                 "Void", "AnyObject", "Class", "dynamicType", "COLUMN", "FILE", "FUNCTION", "LINE"
@@ -334,7 +334,7 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
 
         // model name cannot use reserved keyword, e.g. return
         if (isReservedWord(name)) {
-            String modelName = "Model" + name;
+            String modelName = escapeReservedTypeDeclaration(name);
             LOGGER.warn(name + " (reserved word) cannot be used as model name. Renamed to "
                 + modelName);
             return modelName;
@@ -485,41 +485,6 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
         }
 
         return codegenModel;
-    }
-
-    @Override
-    public CodegenProperty fromProperty(String name, Schema propertySchema) {
-        CodegenProperty codegenProperty = super.fromProperty(name, propertySchema);
-
-        if (typeAliases.containsKey(codegenProperty.baseType)) {
-            Schema resolvedPropertySchema = getOpenAPI().getComponents().getSchemas().get(codegenProperty.datatype);
-
-            postProcessAliasProperty(codegenProperty, resolvedPropertySchema);
-        }
-
-        return codegenProperty;
-    }
-
-    private void postProcessAliasProperty(CodegenProperty codegenProperty, Schema resolvedPropertySchema) {
-        Map<String, Object> propertyExtensions = codegenProperty.getVendorExtensions();
-
-        propertyExtensions.put(CodegenConstants.IS_ALIAS_EXT_NAME, Boolean.TRUE);
-
-        codegenProperty.setDescription(codegenProperty.getDescription() == null
-                ? resolvedPropertySchema.getDescription()
-                : codegenProperty.getDescription());
-
-        if (resolvedPropertySchema.getExtensions() != null) {
-            propertyExtensions.putAll(resolvedPropertySchema.getExtensions());
-        }
-
-        if (resolvedPropertySchema instanceof DateSchema) {
-            propertyExtensions.put(CodegenConstants.IS_DATE_EXT_NAME, Boolean.TRUE);
-        }
-
-        if (resolvedPropertySchema instanceof DateTimeSchema) {
-            propertyExtensions.put(CodegenConstants.IS_DATE_TIME_EXT_NAME, Boolean.TRUE);
-        }
     }
 
     @Override
@@ -701,6 +666,12 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
 
         boolean containsCustomDateFormat = vendorExtensions.containsKey(TINetworkingCodegenConstants.DATE_FORMAT);
 
+        if (typeAliases.containsKey(property.baseType)) {
+            Schema resolvedPropertySchema = getOpenAPI().getComponents().getSchemas().get(property.datatype);
+
+            postProcessAliasProperty(property, resolvedPropertySchema);
+        }
+
         if (property.getIsDate()
                 || property.getIsDateTime()
                 && !containsCustomDateFormat) {
@@ -712,6 +683,11 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
             vendorExtensions.put(TINetworkingCodegenConstants.DATE_FORMAT_NAME, dateFormatName);
 
             allCustomDateFormats.put(dateFormatName, customDateFormat);
+        }
+
+        if (property.getIsObject() && isReservedWord(property.getDatatype())) {
+            property.datatype = escapeReservedTypeDeclaration(property.getDatatype());
+            property.datatypeWithEnum = property.datatype;
         }
     }
 
@@ -767,6 +743,32 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
                 codegenProperty.getVendorExtensions().put(CodegenConstants.HAS_MORE_EXT_NAME, count < numVars);
             }
             codegenModel.vars = codegenProperties;
+        }
+    }
+
+    private String escapeReservedTypeDeclaration(String name) {
+        return "Model" + name;
+    }
+
+    private void postProcessAliasProperty(CodegenProperty codegenProperty, Schema resolvedPropertySchema) {
+        Map<String, Object> propertyExtensions = codegenProperty.getVendorExtensions();
+
+        propertyExtensions.put(CodegenConstants.IS_ALIAS_EXT_NAME, Boolean.TRUE);
+
+        codegenProperty.setDescription(codegenProperty.getDescription() == null
+                ? resolvedPropertySchema.getDescription()
+                : codegenProperty.getDescription());
+
+        if (resolvedPropertySchema.getExtensions() != null) {
+            propertyExtensions.putAll(resolvedPropertySchema.getExtensions());
+        }
+
+        if (resolvedPropertySchema instanceof DateSchema) {
+            propertyExtensions.put(CodegenConstants.IS_DATE_EXT_NAME, Boolean.TRUE);
+        }
+
+        if (resolvedPropertySchema instanceof DateTimeSchema) {
+            propertyExtensions.put(CodegenConstants.IS_DATE_TIME_EXT_NAME, Boolean.TRUE);
         }
     }
 }
