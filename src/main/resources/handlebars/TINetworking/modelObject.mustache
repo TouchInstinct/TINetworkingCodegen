@@ -61,9 +61,9 @@ public {{#useModelClasses}}class{{/useModelClasses}}{{^useModelClasses}}struct{{
         {{#allVars}}
         {{#if isListContainer}}
         {{#if items.vendorExtensions.x-codegen-is-iso8601-date}}
-        try container.encode(dates: {{name}}, forKey: .{{name}}, userInfo: encoder.userInfo, options: .{{#items.isDate}}withFullDate{{/items.isDate}}{{#isDateTime}}withInternetDateTime{{/isDateTime}}{{^required}}, required: false{{/required}})
+        try container.encode(dates: {{name}}, forKey: .{{name}}, userInfo: encoder.userInfo, options: .{{#items.isDate}}withFullDate{{/items.isDate}}{{#items.isDateTime}}withInternetDateTime{{/items.isDateTime}}{{^required}}, required: false{{/required}})
         {{else if items.vendorExtensions.x-custom-date-format}}
-        try container.encode(dates: {{name}}, forKey: .{{name}}, userInfo: encoder.userInfo, dateFormat: APIDateFormat.{{vendorExtensions.x-codegen-date-format-name}}{{^required}}, required: false{{/required}})
+        try container.encode(dates: {{name}}, forKey: .{{name}}, userInfo: encoder.userInfo, dateFormat: APIDateFormat.{{items.vendorExtensions.x-codegen-date-format-name}}{{^required}}, required: false{{/required}})
         {{else}}
         try container.encode({{name}}, forKey: .{{name}}{{^required}}, required: false{{/required}})
         {{/if}}
