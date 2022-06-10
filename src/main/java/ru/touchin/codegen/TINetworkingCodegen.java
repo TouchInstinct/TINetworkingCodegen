@@ -208,9 +208,9 @@ public class TINetworkingCodegen extends DefaultCodegenConfig {
                 sourceFolder,
                 projectName + "+Servers.swift"));
 
-        supportingFiles.add(new SupportingFile("Plugins.mustache",
+        supportingFiles.add(new SupportingFile("OpenAPI.mustache",
                 sourceFolder,
-                "Plugins.swift"));
+                projectName + "+OpenAPI.swift"));
 
         copyFistAllOfProperties = true;
     }

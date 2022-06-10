@@ -1,0 +1,17 @@
+import TINetworking
+
+public extension OpenAPI {
+    enum SecurityNames: String, Hashable {
+        {{#authMethods}}
+        case {{name}}
+        {{/authMethods}}
+    }
+
+    static var {{projectName}}: Self {
+        .init(defaultServer: .default, security: [
+            {{#authMethods}}
+            "{{name}}": {{#isApiKey}}.apiKey({{#isKeyInHeader}}.header{{/isKeyInHeader}}{{#isKeyInQuery}}.query{{/isKeyInQuery}}, parameterName: "{{keyParamName}}"){{/isApiKey}}{{#isBearer}}.http(.bearer){{/isBearer}}{{#isBasic}}.http(.basic){{/isBasic}}{{#hasMore}},{{/hasMore}}
+            {{/authMethods}}
+        ])
+    }
+}
